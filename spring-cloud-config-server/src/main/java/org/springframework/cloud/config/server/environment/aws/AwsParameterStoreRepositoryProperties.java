@@ -25,8 +25,15 @@ import org.springframework.core.Ordered;
  */
 @ConfigurationProperties("spring.cloud.config.server.awsparameterstore")
 public class AwsParameterStoreRepositoryProperties implements EnvironmentRepositoryProperties {
+	/**
+	 * Default path separator
+	 */
+	public static final String PATH_SEPARATOR = "/";
+
 	private int order = Ordered.LOWEST_PRECEDENCE;
-	private String roleArn;
+	private String profile;
+	private String pathPrefix;
+	private String region;
 
 	public int getOrder() {
 		return this.order;
@@ -38,18 +45,34 @@ public class AwsParameterStoreRepositoryProperties implements EnvironmentReposit
 	}
 
 	/**
-	 * Role ARN to assume for fetching parameters.
+	 * Profile to use for fetching parameters.
 	 * @return
 	 */
-	public String getRoleArn() {
-		return roleArn;
+	public String getProfile() {
+		return profile;
 	}
 
 	/**
-	 * Role ARN to assume for fetching parameters.
+	 * Profile to use for fetching parameters.
 	 * @return
 	 */
-	public void setRoleArn(String roleArn) {
-		this.roleArn = roleArn;
+	public void setProfile(String profile) {
+		this.profile = profile;
+	}
+
+	public String getPathPrefix() {
+		return pathPrefix;
+	}
+
+	public void setPathPrefix(String pathPrefix) {
+		this.pathPrefix = pathPrefix;
+	}
+
+	public String getRegion() {
+		return region;
+	}
+
+	public void setRegion(String region) {
+		this.region = region;
 	}
 }

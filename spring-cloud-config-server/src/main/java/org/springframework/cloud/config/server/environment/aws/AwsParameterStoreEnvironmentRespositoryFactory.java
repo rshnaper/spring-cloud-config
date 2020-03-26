@@ -34,7 +34,7 @@ public class AwsParameterStoreEnvironmentRespositoryFactory implements
 
 	@Override
 	public AwsParameterStoreRepository build(
-		AwsParameterStoreRepositoryProperties environmentProperties) throws Exception {
+		AwsParameterStoreRepositoryProperties environmentProperties) {
 
 		return new AwsParameterStoreRepository(environmentProperties, this.tokenProvider);
 	}

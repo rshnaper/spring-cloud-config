@@ -16,77 +16,37 @@
 
 package org.springframework.cloud.config.server.config;
 
-import java.util.List;
-import java.util.Optional;
-
-import javax.servlet.http.HttpServletRequest;
-
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import org.apache.http.client.HttpClient;
 import org.eclipse.jgit.api.TransportConfigCallback;
-import org.tmatesoft.svn.core.SVNException;
-
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClass;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.autoconfigure.condition.SearchStrategy;
+import org.springframework.boot.autoconfigure.condition.*;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.config.server.composite.CompositeEnvironmentBeanFactoryPostProcessor;
 import org.springframework.cloud.config.server.composite.ConditionalOnMissingSearchPathLocator;
 import org.springframework.cloud.config.server.composite.ConditionalOnSearchPathLocator;
-import org.springframework.cloud.config.server.environment.AwsS3EnvironmentProperties;
-import org.springframework.cloud.config.server.environment.AwsS3EnvironmentRepository;
-import org.springframework.cloud.config.server.environment.AwsS3EnvironmentRepositoryFactory;
-import org.springframework.cloud.config.server.environment.CompositeEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.ConfigTokenProvider;
-import org.springframework.cloud.config.server.environment.ConfigurableHttpConnectionFactory;
-import org.springframework.cloud.config.server.environment.ConsulEnvironmentWatch;
-import org.springframework.cloud.config.server.environment.CredhubEnvironmentProperties;
-import org.springframework.cloud.config.server.environment.CredhubEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.CredhubEnvironmentRepositoryFactory;
-import org.springframework.cloud.config.server.environment.EnvironmentRepository;
-import org.springframework.cloud.config.server.environment.EnvironmentWatch;
-import org.springframework.cloud.config.server.environment.HttpClientConfigurableHttpConnectionFactory;
-import org.springframework.cloud.config.server.environment.HttpClientVaultRestTemplateFactory;
-import org.springframework.cloud.config.server.environment.HttpRequestConfigTokenProvider;
-import org.springframework.cloud.config.server.environment.JdbcEnvironmentProperties;
-import org.springframework.cloud.config.server.environment.JdbcEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.JdbcEnvironmentRepositoryFactory;
-import org.springframework.cloud.config.server.environment.MultipleJGitEnvironmentProperties;
-import org.springframework.cloud.config.server.environment.MultipleJGitEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.MultipleJGitEnvironmentRepositoryFactory;
-import org.springframework.cloud.config.server.environment.NativeEnvironmentProperties;
-import org.springframework.cloud.config.server.environment.NativeEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.NativeEnvironmentRepositoryFactory;
-import org.springframework.cloud.config.server.environment.RedisEnvironmentProperties;
-import org.springframework.cloud.config.server.environment.RedisEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.RedisEnvironmentRepositoryFactory;
-import org.springframework.cloud.config.server.environment.SearchPathCompositeEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.SvnEnvironmentRepositoryFactory;
-import org.springframework.cloud.config.server.environment.SvnKitEnvironmentProperties;
-import org.springframework.cloud.config.server.environment.SvnKitEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.VaultEnvironmentProperties;
-import org.springframework.cloud.config.server.environment.VaultEnvironmentRepository;
-import org.springframework.cloud.config.server.environment.VaultEnvironmentRepositoryFactory;
+import org.springframework.cloud.config.server.environment.*;
+import org.springframework.cloud.config.server.environment.aws.AwsParameterStoreEnvironmentRespositoryFactory;
+import org.springframework.cloud.config.server.environment.aws.AwsParameterStoreRepository;
+import org.springframework.cloud.config.server.environment.aws.AwsParameterStoreRepositoryProperties;
 import org.springframework.cloud.config.server.environment.vault.SpringVaultClientConfiguration;
 import org.springframework.cloud.config.server.environment.vault.SpringVaultEnvironmentRepository;
 import org.springframework.cloud.config.server.environment.vault.SpringVaultEnvironmentRepositoryFactory;
 import org.springframework.cloud.config.server.support.GoogleCloudSourceSupport;
 import org.springframework.cloud.config.server.support.TransportConfigCallbackFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
-import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.*;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.credhub.core.CredHubOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.vault.core.VaultTemplate;
+import org.tmatesoft.svn.core.SVNException;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * @author Dave Syer
@@ -100,14 +60,15 @@ import org.springframework.vault.core.VaultTemplate;
 @EnableConfigurationProperties({ SvnKitEnvironmentProperties.class,
 		CredhubEnvironmentProperties.class, JdbcEnvironmentProperties.class,
 		NativeEnvironmentProperties.class, VaultEnvironmentProperties.class,
-		RedisEnvironmentProperties.class, AwsS3EnvironmentProperties.class })
+		RedisEnvironmentProperties.class, AwsS3EnvironmentProperties.class, AwsParameterStoreRepositoryProperties.class })
 @Import({ CompositeRepositoryConfiguration.class, JdbcRepositoryConfiguration.class,
 		VaultConfiguration.class, VaultRepositoryConfiguration.class,
 		SpringVaultRepositoryConfiguration.class, CredhubConfiguration.class,
 		CredhubRepositoryConfiguration.class, SvnRepositoryConfiguration.class,
 		NativeRepositoryConfiguration.class, GitRepositoryConfiguration.class,
 		RedisRepositoryConfiguration.class, GoogleCloudSourceConfiguration.class,
-		AwsS3RepositoryConfiguration.class, DefaultRepositoryConfiguration.class })
+		AwsS3RepositoryConfiguration.class, AwsParameterStoreRepositoryConfiguration.class,
+		DefaultRepositoryConfiguration.class })
 public class EnvironmentRepositoryConfiguration {
 
 	@Bean
@@ -301,6 +262,15 @@ public class EnvironmentRepositoryConfiguration {
 
 	}
 
+	@Configuration(proxyBeanMethods = false)
+	static class AwsParameterStoreFactoryConfig {
+		@Bean
+		public AwsParameterStoreEnvironmentRespositoryFactory awsParameterStoreEnvironmentRespositoryFactory(
+			ConfigTokenProvider tokenProvider) {
+			return new AwsParameterStoreEnvironmentRespositoryFactory(tokenProvider);
+		}
+	}
+
 }
 
 @Configuration(proxyBeanMethods = false)
@@ -461,4 +431,16 @@ class CompositeRepositoryConfiguration {
 		return new CompositeEnvironmentRepository(environmentRepositories);
 	}
 
+}
+
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnClass(AWSSimpleSystemsManagement.class)
+@Profile("awsparameterstore")
+class AwsParameterStoreRepositoryConfiguration {
+	@Bean
+	public AwsParameterStoreRepository awsParameterStoreEnvironmentRepository(
+		AwsParameterStoreEnvironmentRespositoryFactory factory,
+		AwsParameterStoreRepositoryProperties environmentProperties) {
+		return factory.build(environmentProperties);
+	}
 }

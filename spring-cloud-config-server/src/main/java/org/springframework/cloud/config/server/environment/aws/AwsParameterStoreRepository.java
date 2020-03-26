@@ -16,20 +16,38 @@
 
 package org.springframework.cloud.config.server.environment.aws;
 
-import com.amazonaws.auth.*;
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.DefaultAWSCredentialsProviderChain;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClient;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParametersByPathRequest;
+import com.amazonaws.services.simplesystemsmanagement.model.GetParametersByPathResult;
+import com.amazonaws.services.simplesystemsmanagement.model.Parameter;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.cloud.config.environment.Environment;
+import org.springframework.cloud.config.environment.PropertySource;
 import org.springframework.cloud.config.server.environment.ConfigTokenProvider;
 import org.springframework.cloud.config.server.environment.EnvironmentRepository;
 import org.springframework.cloud.config.server.environment.RepositoryException;
+import org.springframework.cloud.config.server.support.EnvironmentRepositoryProperties;
 import org.springframework.core.Ordered;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.StringUtils;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Ross Shnaper
  */
 public class AwsParameterStoreRepository implements EnvironmentRepository, Ordered {
+	private final static String PROPERTY_SOURCE_NAME_PREFIX = "aws-parameterstore:";
 	private int order;
 	private AwsParameterStoreRepositoryProperties properties;
 	private ConfigTokenProvider tokenProvider;
@@ -48,7 +66,16 @@ public class AwsParameterStoreRepository implements EnvironmentRepository, Order
 
 	@Override
 	public Environment findOne(String application, String profile, String label, boolean includeOrigin) {
-		return null;
+		String path = StringUtils.isEmpty(properties.getPathPrefix()) ? "" : properties.getPathPrefix();
+		path += AwsParameterStoreRepositoryProperties.PATH_SEPARATOR + application;
+
+		if (!StringUtils.isEmpty(profile)) {
+			path += AwsParameterStoreRepositoryProperties.PATH_SEPARATOR + profile;
+		}
+
+		Environment environment = new Environment(application, new String[]{profile}, label, null, null);
+		environment.add(createPropertySource(path));
+		return environment;
 	}
 
 	@Override
@@ -83,9 +110,41 @@ public class AwsParameterStoreRepository implements EnvironmentRepository, Order
 		if (clientCredentials != null) {
 			credentialsProvider = new AWSStaticCredentialsProvider(clientCredentials);
 		}
+		else if (!StringUtils.isEmpty(properties.getProfile())) {
+			credentialsProvider = new ProfileCredentialsProvider(properties.getProfile());
+		}
 		else {
 			credentialsProvider = new DefaultAWSCredentialsProviderChain();
 		}
 		return credentialsProvider;
+	}
+
+	private List<Parameter> getParameters(String path) {
+		AWSCredentialsProvider credentialsProvider = createCredentialsProvider();
+		AWSSimpleSystemsManagementClientBuilder builder =  AWSSimpleSystemsManagementClient.builder();
+		builder.withCredentials(credentialsProvider);
+		if (!StringUtils.isEmpty(properties.getRegion())) {
+			builder.withRegion(properties.getRegion());
+		}
+		AWSSimpleSystemsManagement ssmClient = builder.build();
+
+		GetParametersByPathRequest request = new GetParametersByPathRequest();
+		request.withPath(path).withWithDecryption(true).withRecursive(true);
+		GetParametersByPathResult result = ssmClient.getParametersByPath(request);
+		return result != null ? result.getParameters() : null;
+	}
+
+	private PropertySource createPropertySource(String path) {
+		Map<String, String> parameterMap = new HashMap<>();
+		String paramName;
+		List<Parameter> parameters = getParameters(path);
+		if (StringUtils.isEmpty(parameters)) {
+			for (Parameter parameter : getParameters(path)) {
+				paramName = parameter.getName().replace(path, "")
+					.replace(AwsParameterStoreRepositoryProperties.PATH_SEPARATOR, ".");
+				parameterMap.put(paramName, parameter.getValue());
+			}
+		}
+		return new PropertySource(PROPERTY_SOURCE_NAME_PREFIX + path, parameterMap);
 	}
 }
