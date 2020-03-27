@@ -29,6 +29,7 @@ import org.springframework.cloud.config.server.composite.ConditionalOnSearchPath
 import org.springframework.cloud.config.server.environment.*;
 import org.springframework.cloud.config.server.environment.aws.AwsParameterStoreEnvironmentRespositoryFactory;
 import org.springframework.cloud.config.server.environment.aws.AwsParameterStoreRepository;
+import org.springframework.cloud.config.server.environment.aws.AwsParameterStoreRepositoryCredentialsProvider;
 import org.springframework.cloud.config.server.environment.aws.AwsParameterStoreRepositoryProperties;
 import org.springframework.cloud.config.server.environment.vault.SpringVaultClientConfiguration;
 import org.springframework.cloud.config.server.environment.vault.SpringVaultEnvironmentRepository;
@@ -265,9 +266,15 @@ public class EnvironmentRepositoryConfiguration {
 	@Configuration(proxyBeanMethods = false)
 	static class AwsParameterStoreFactoryConfig {
 		@Bean
-		public AwsParameterStoreEnvironmentRespositoryFactory awsParameterStoreEnvironmentRespositoryFactory(
+		public AwsParameterStoreRepositoryCredentialsProvider credentialsProvider(AwsParameterStoreRepositoryProperties properties,
 			ConfigTokenProvider tokenProvider) {
-			return new AwsParameterStoreEnvironmentRespositoryFactory(tokenProvider);
+			return new AwsParameterStoreRepositoryCredentialsProvider(properties, tokenProvider);
+		}
+
+		@Bean
+		public AwsParameterStoreEnvironmentRespositoryFactory awsParameterStoreEnvironmentRespositoryFactory(
+			AwsParameterStoreRepositoryCredentialsProvider credentialsProvider) {
+			return new AwsParameterStoreEnvironmentRespositoryFactory(credentialsProvider);
 		}
 	}
 
@@ -437,6 +444,7 @@ class CompositeRepositoryConfiguration {
 @ConditionalOnClass(AWSSimpleSystemsManagement.class)
 @Profile("awsparameterstore")
 class AwsParameterStoreRepositoryConfiguration {
+
 	@Bean
 	public AwsParameterStoreRepository awsParameterStoreEnvironmentRepository(
 		AwsParameterStoreEnvironmentRespositoryFactory factory,

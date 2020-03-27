@@ -16,8 +16,11 @@
 
 package org.springframework.cloud.config.server.environment.aws;
 
-import org.springframework.cloud.config.server.environment.ConfigTokenProvider;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClient;
+import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
 import org.springframework.cloud.config.server.environment.EnvironmentRepositoryFactory;
+import org.springframework.util.StringUtils;
 
 /**
  * @author Ross Shnaper
@@ -25,17 +28,26 @@ import org.springframework.cloud.config.server.environment.EnvironmentRepository
 public class AwsParameterStoreEnvironmentRespositoryFactory implements
 	EnvironmentRepositoryFactory<AwsParameterStoreRepository, AwsParameterStoreRepositoryProperties> {
 
-	private ConfigTokenProvider tokenProvider;
+	private AwsParameterStoreRepositoryCredentialsProvider credentialsProvider;
 
-	public AwsParameterStoreEnvironmentRespositoryFactory(
-		ConfigTokenProvider tokenProvider) {
-		this.tokenProvider = tokenProvider;
+	public AwsParameterStoreEnvironmentRespositoryFactory(AwsParameterStoreRepositoryCredentialsProvider credentialsProvider) {
+		this.credentialsProvider = credentialsProvider;
 	}
 
 	@Override
 	public AwsParameterStoreRepository build(
 		AwsParameterStoreRepositoryProperties environmentProperties) {
+		AWSSimpleSystemsManagement ssmClient = getSsmClient(environmentProperties);
+		return new AwsParameterStoreRepository(environmentProperties, ssmClient);
+	}
 
-		return new AwsParameterStoreRepository(environmentProperties, this.tokenProvider);
+	private AWSSimpleSystemsManagement getSsmClient(AwsParameterStoreRepositoryProperties properties) {
+		AWSSimpleSystemsManagementClientBuilder builder =  AWSSimpleSystemsManagementClient
+			.builder();
+		builder.withCredentials(this.credentialsProvider);
+		if (!StringUtils.isEmpty(properties.getRegion())) {
+			builder.withRegion(properties.getRegion());
+		}
+		return builder.build();
 	}
 }

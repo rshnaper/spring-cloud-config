@@ -34,6 +34,7 @@ public class AwsParameterStoreRepositoryProperties implements EnvironmentReposit
 	private String profile;
 	private String pathPrefix;
 	private String region;
+	private String profileSeparator;
 
 	public int getOrder() {
 		return this.order;
@@ -74,5 +75,13 @@ public class AwsParameterStoreRepositoryProperties implements EnvironmentReposit
 
 	public void setRegion(String region) {
 		this.region = region;
+	}
+
+	public String getProfileSeparator() {
+		return profileSeparator;
+	}
+
+	public void setProfileSeparator(String profileSeparator) {
+		this.profileSeparator = profileSeparator;
 	}
 }
