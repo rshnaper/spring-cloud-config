@@ -74,7 +74,7 @@ public class AwsParameterStoreRepositoryCredentialsProvider implements AWSCreden
 				byte[] encodedCredentialsJson = Base64Utils.decodeFromString(encodedCredentials);
 				//create credentials from json
 				ObjectMapper objectMapper = new ObjectMapper();
-				credentials = objectMapper.readValue(encodedCredentialsJson, AwsSessionCredentials.class);
+				credentials = objectMapper.readValue(encodedCredentialsJson, AwsSessionCredentialsWrapper.class);
 			}
 		}
 		catch (IllegalArgumentException e) {
