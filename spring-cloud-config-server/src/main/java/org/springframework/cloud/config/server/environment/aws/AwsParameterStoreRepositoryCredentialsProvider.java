@@ -50,15 +50,15 @@ public class AwsParameterStoreRepositoryCredentialsProvider implements AWSCreden
 		getCredentialsProviderDelegate().refresh();
 	}
 
-	private AWSCredentialsProvider getCredentialsProviderDelegate() {
+	protected AWSCredentialsProvider getCredentialsProviderDelegate() {
 		AWSCredentialsProvider credentialsProvider;
 		AWSCredentials clientCredentials = getClientCredentials();
 
 		if (clientCredentials != null) {
 			credentialsProvider = new AWSStaticCredentialsProvider(clientCredentials);
 		}
-		else if (!StringUtils.isEmpty(properties.getProfile())) {
-			credentialsProvider = new ProfileCredentialsProvider(properties.getProfile());
+		else if (!StringUtils.isEmpty(properties.getAwsProfile())) {
+			credentialsProvider = new ProfileCredentialsProvider(properties.getAwsProfile());
 		}
 		else {
 			credentialsProvider = new DefaultAWSCredentialsProviderChain();

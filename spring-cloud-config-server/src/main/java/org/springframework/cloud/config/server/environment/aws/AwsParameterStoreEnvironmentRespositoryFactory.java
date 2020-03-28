@@ -16,6 +16,7 @@
 
 package org.springframework.cloud.config.server.environment.aws;
 
+import com.amazonaws.client.builder.AwsSyncClientBuilder;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClient;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
@@ -42,13 +43,16 @@ public class AwsParameterStoreEnvironmentRespositoryFactory implements
 		return new AwsParameterStoreRepository(environmentProperties, ssmClient);
 	}
 
-	private AWSSimpleSystemsManagement getSsmClient(AwsParameterStoreRepositoryProperties properties) {
-		AWSSimpleSystemsManagementClientBuilder builder =  AWSSimpleSystemsManagementClient
-			.builder();
+	protected AWSSimpleSystemsManagement getSsmClient(AwsParameterStoreRepositoryProperties properties) {
+		AwsSyncClientBuilder<AWSSimpleSystemsManagementClientBuilder, AWSSimpleSystemsManagement> builder =  getBuilder();
 		builder.withCredentials(this.credentialsProvider);
 		if (!StringUtils.isEmpty(properties.getRegion())) {
 			builder.withRegion(properties.getRegion());
 		}
 		return builder.build();
+	}
+
+	protected AwsSyncClientBuilder<AWSSimpleSystemsManagementClientBuilder, AWSSimpleSystemsManagement> getBuilder() {
+		return AWSSimpleSystemsManagementClient.builder();
 	}
 }

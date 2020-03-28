@@ -31,7 +31,7 @@ public class AwsParameterStoreRepositoryProperties implements EnvironmentReposit
 	public static final String PATH_SEPARATOR = "/";
 
 	private int order = Ordered.LOWEST_PRECEDENCE;
-	private String profile;
+	private String awsProfile;
 	private String pathPrefix;
 	private String region;
 	private String profileSeparator;
@@ -49,16 +49,16 @@ public class AwsParameterStoreRepositoryProperties implements EnvironmentReposit
 	 * Profile to use for fetching parameters.
 	 * @return
 	 */
-	public String getProfile() {
-		return profile;
+	public String getAwsProfile() {
+		return awsProfile;
 	}
 
 	/**
 	 * Profile to use for fetching parameters.
 	 * @return
 	 */
-	public void setProfile(String profile) {
-		this.profile = profile;
+	public void setAwsProfile(String awsProfile) {
+		this.awsProfile = awsProfile;
 	}
 
 	public String getPathPrefix() {

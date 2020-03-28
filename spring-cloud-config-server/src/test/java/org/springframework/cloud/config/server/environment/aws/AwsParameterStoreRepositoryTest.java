@@ -28,10 +28,12 @@ import com.amazonaws.services.simplesystemsmanagement.model.GetParametersByPathR
 import com.amazonaws.services.simplesystemsmanagement.model.Parameter;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+import org.mockito.junit.MockitoJUnitRunner;
 import org.mockito.stubbing.Answer;
 
 import org.springframework.cloud.config.environment.Environment;
@@ -49,6 +51,7 @@ import static org.mockito.Mockito.when;
 /**
  * @author Ross Shnaper
  */
+@RunWith(MockitoJUnitRunner.class)
 public class AwsParameterStoreRepositoryTest {
 	@Mock
 	private AwsParameterStoreRepositoryProperties properties;
@@ -60,11 +63,6 @@ public class AwsParameterStoreRepositoryTest {
 	@InjectMocks
 	@Spy
 	private AwsParameterStoreRepository repository;
-
-	@Before
-	public void init() {
-		MockitoAnnotations.initMocks(this);
-	}
 
 	@Test
 	public void testDefaultProfile() {
