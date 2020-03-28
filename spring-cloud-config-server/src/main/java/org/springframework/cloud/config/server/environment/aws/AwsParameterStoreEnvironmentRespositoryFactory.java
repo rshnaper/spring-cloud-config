@@ -19,6 +19,7 @@ package org.springframework.cloud.config.server.environment.aws;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClient;
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagementClientBuilder;
+
 import org.springframework.cloud.config.server.environment.EnvironmentRepositoryFactory;
 import org.springframework.util.StringUtils;
 

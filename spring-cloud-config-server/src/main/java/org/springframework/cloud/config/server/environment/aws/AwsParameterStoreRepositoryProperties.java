@@ -26,7 +26,7 @@ import org.springframework.core.Ordered;
 @ConfigurationProperties("spring.cloud.config.server.awsparameterstore")
 public class AwsParameterStoreRepositoryProperties implements EnvironmentRepositoryProperties {
 	/**
-	 * Default path separator
+	 * Default path separator.
 	 */
 	public static final String PATH_SEPARATOR = "/";
 
