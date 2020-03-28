@@ -53,24 +53,31 @@ public class AwsParameterStoreRepository implements EnvironmentRepository, Order
 
 	@Override
 	public Environment findOne(String application, String profile, String label, boolean includeOrigin) {
-		String path = StringUtils.isEmpty(properties.getPathPrefix()) ? "" : properties.getPathPrefix();
-		path += AwsParameterStoreRepositoryProperties.PATH_SEPARATOR + application;
+		String[] activeProfiles = profile.split(",");
+		Environment environment = new Environment(application, activeProfiles, label, null, null);
 
-		//add profile
-		if (!StringUtils.isEmpty(profile)) {
-			String profileSeparator = !StringUtils.isEmpty(properties.getProfileSeparator()) ? properties.getProfileSeparator() : AwsParameterStoreRepositoryProperties.PATH_SEPARATOR;
-			path += profileSeparator + profile;
+		for (String activeProfile : activeProfiles) {
+			String path = getPath(properties, application, activeProfile);
+			environment.add(createPropertySource(path));
 		}
-		path += AwsParameterStoreRepositoryProperties.PATH_SEPARATOR;
 
-		Environment environment = new Environment(application, new String[]{profile}, label, null, null);
-		environment.add(createPropertySource(path));
 		return environment;
 	}
 
 	@Override
 	public int getOrder() {
 		return order;
+	}
+
+	private String getPath(AwsParameterStoreRepositoryProperties properties, String application, String profile) {
+		String profileSeparator = !StringUtils.isEmpty(properties.getProfileSeparator()) ?
+			properties.getProfileSeparator() :
+			AwsParameterStoreRepositoryProperties.PATH_SEPARATOR;
+
+		String path = StringUtils.isEmpty(properties.getPathPrefix()) ? AwsParameterStoreRepositoryProperties.PATH_SEPARATOR : properties.getPathPrefix();
+		path += application + profileSeparator + profile + AwsParameterStoreRepositoryProperties.PATH_SEPARATOR;
+
+		return path;
 	}
 
 	private List<Parameter> getParameters(String path) {

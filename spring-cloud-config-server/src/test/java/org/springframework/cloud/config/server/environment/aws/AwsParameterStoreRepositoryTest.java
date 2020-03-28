@@ -26,19 +26,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.Spy;
+import org.mockito.stubbing.Answer;
 import org.springframework.cloud.config.environment.Environment;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.when;
 
+/**
+ * @author Ross Shnaper
+ */
 public class AwsParameterStoreRepositoryTest {
 	@Mock
 	private AwsParameterStoreRepositoryProperties properties;
@@ -46,8 +47,6 @@ public class AwsParameterStoreRepositoryTest {
 	@Mock
 	private AWSSimpleSystemsManagement ssmClient;
 
-	@Mock
-	private GetParametersByPathRequest request;
 
 	@InjectMocks
 	@Spy
@@ -78,13 +77,24 @@ public class AwsParameterStoreRepositoryTest {
 		testEnvironment("app", "profile1", null, "/config/");
 	}
 
-	private String getPath(String appName, String profile, String profileSeparator) {
-		return String.format("/%s%s%s/", appName, profileSeparator, profile);
+	@Test
+	public void testMultipleProfiles() {
+		testEnvironment("app", "profile1,profile2", null, null);
+	}
+
+	@Test
+	public void testNoProfile() {
+		testEnvironment("app", "", null, null);
+	}
+
+	private String getPath(String appName, String profile, String profileSeparator, String pathPrefix) {
+		return String.format("%s%s%s%s/", StringUtils.isEmpty(pathPrefix) ? "/" : pathPrefix, appName, profileSeparator, profile);
 	}
 
 	private List<Parameter> generateParameters(String path) {
 		List<Parameter> parameters = new ArrayList<>();
-		parameters.add(new Parameter().withName(path + "foo").withValue("bar"));
+		parameters.add(new Parameter().withName(path + UUID.randomUUID().toString()).withValue(UUID.randomUUID().toString()));
+		parameters.add(new Parameter().withName(path + UUID.randomUUID().toString()).withValue(UUID.randomUUID().toString()));
 		return parameters;
 	}
 
@@ -100,36 +110,51 @@ public class AwsParameterStoreRepositoryTest {
 		testEnvironment(appName, profile, customProfileSeparator, null);
 	}
 
-	private void testEnvironment(String appName, String profile, String customProfileSeparator, String customPathPrefix) {
+	private void testEnvironment(String appName, String profiles, String customProfileSeparator, String customPathPrefix) {
+		List<String> paths = new ArrayList<>();
 		String profileSeparator = !StringUtils.isEmpty(customProfileSeparator) ? customProfileSeparator : "/";
-		if (!StringUtils.isEmpty(customProfileSeparator)) {
-			when(properties.getProfileSeparator()).thenReturn(profileSeparator);
+		final Map<String, GetParametersByPathResult> results = new HashMap<>();
+		Map<String, Map<String, String>> expectedParameters = new HashMap<>();
+
+		//mock setups
+		when(properties.getProfileSeparator()).thenReturn(profileSeparator);
+		when(properties.getPathPrefix()).thenReturn(customPathPrefix);
+		when(ssmClient.getParametersByPath(any(GetParametersByPathRequest.class))).then(
+			(Answer<GetParametersByPathResult>) invocationOnMock -> {
+				GetParametersByPathRequest request = invocationOnMock.getArgument(0);
+
+				return results.get(request.getPath());
+			});
+
+		//generate data for each profile
+		for (String profile : profiles.split(",")) {
+			String path = getPath(appName, profile, profileSeparator, customPathPrefix);
+			paths.add(path);
+
+			//generate data returned by AwsSSM
+			List<Parameter> awsParameters = generateParameters(path);
+			GetParametersByPathResult result = new GetParametersByPathResult();
+			result.setParameters(awsParameters);
+			results.put(path, result);
+
+			//generate expected data from property sources
+			expectedParameters.put(path, getExpectedParameters(awsParameters,
+				path));
 		}
 
-		String path = getPath(appName, profile, profileSeparator);
-		if (!StringUtils.isEmpty(customPathPrefix)) {
-			when(properties.getPathPrefix()).thenReturn(customPathPrefix);
-			path = customPathPrefix + path;
-		}
-
-		List<Parameter> awsParameters = generateParameters(path);
-		Map<String, String> expectedParameters = getExpectedParameters(awsParameters, path);
-
-		GetParametersByPathResult result = new GetParametersByPathResult();
-		result.setParameters(awsParameters);
-		when(ssmClient.getParametersByPath(any())).thenReturn(result);
-
-		Environment environment = repository.findOne(appName, profile, null, false);
-		assertEnvironment(environment, expectedParameters, path);
+		//test
+		Environment environment = repository.findOne(appName, profiles, null, false);
+		assertEnvironment(environment, expectedParameters, paths.toArray(new String[0]));
 	}
 
-	private void assertEnvironment(Environment environment, Map<String, String> expectedParameters, String path) {
-		assertThat(environment.getPropertySources(), hasItem(
-			allOf(
-				hasProperty("name", endsWith(path)),
-				hasProperty("source", equalTo(expectedParameters))
-			)
-		));
+	private void assertEnvironment(Environment environment, Map<String, Map<String, String>> expectedParameters, String[] paths) {
+		assertThat(environment.getPropertySources().size(), equalTo(paths.length));
+		for (String path : paths) {
+			assertThat(environment.getPropertySources(), hasItem(
+				allOf(
+					hasProperty("name", endsWith(path)),
+					hasProperty("source", equalTo(expectedParameters.get(path))))));
+		}
 	}
 
 }
