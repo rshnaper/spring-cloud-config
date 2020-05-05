@@ -102,6 +102,8 @@ public class AwsParameterStoreRepositoryTest {
 		List<Parameter> parameters = new ArrayList<>();
 		parameters.add(new Parameter().withName(path + UUID.randomUUID().toString()).withValue(UUID.randomUUID().toString()));
 		parameters.add(new Parameter().withName(path + UUID.randomUUID().toString()).withValue(UUID.randomUUID().toString()));
+		parameters.add(new Parameter().withName(path + "sub-path/" + UUID.randomUUID().toString()).withValue(UUID.randomUUID().toString()));
+		parameters.add(new Parameter().withName(path + "sub-path/" + UUID.randomUUID().toString()).withValue(UUID.randomUUID().toString()));
 		return parameters;
 	}
 

@@ -16,15 +16,14 @@
 
 package org.springframework.cloud.config.server.environment.aws;
 
-import java.util.HashMap;
-import java.util.List;
+import java.util.Arrays;
 import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
-import com.amazonaws.services.simplesystemsmanagement.model.GetParametersByPathRequest;
-import com.amazonaws.services.simplesystemsmanagement.model.GetParametersByPathResult;
-import com.amazonaws.services.simplesystemsmanagement.model.Parameter;
 
+import org.springframework.cloud.aws.paramstore.AwsParamStorePropertySource;
 import org.springframework.cloud.config.environment.Environment;
 import org.springframework.cloud.config.environment.PropertySource;
 import org.springframework.cloud.config.server.environment.EnvironmentRepository;
@@ -81,24 +80,13 @@ public class AwsParameterStoreRepository implements EnvironmentRepository, Order
 		return path;
 	}
 
-	private List<Parameter> getParameters(String path) {
-		GetParametersByPathRequest request = new GetParametersByPathRequest();
-		request.withPath(path).withWithDecryption(true).withRecursive(true);
-		GetParametersByPathResult result = this.ssmClient.getParametersByPath(request);
-		return result != null ? result.getParameters() : null;
-	}
-
 	private PropertySource createPropertySource(String path) {
-		Map<String, String> parameterMap = new HashMap<>();
-		String paramName;
-		List<Parameter> parameters = getParameters(path);
-		if (!StringUtils.isEmpty(parameters)) {
-			for (Parameter parameter : parameters) {
-				paramName = parameter.getName().replace(path, "")
-					.replace(AwsParameterStoreRepositoryProperties.PATH_SEPARATOR, ".");
-				parameterMap.put(paramName, parameter.getValue());
-			}
-		}
-		return new PropertySource(PROPERTY_SOURCE_NAME_PREFIX + path, parameterMap);
+		AwsParamStorePropertySource source = new AwsParamStorePropertySource(path, ssmClient);
+		source.init();
+
+		Map<String, String> properties = Arrays.stream(source.getPropertyNames())
+				.collect(Collectors.toMap(Function.identity(), property -> (String) source.getProperty(property)));
+
+		return new PropertySource(PROPERTY_SOURCE_NAME_PREFIX + path, properties);
 	}
 }

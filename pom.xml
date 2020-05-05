@@ -35,6 +35,7 @@
 		</maven-checkstyle-plugin.failsOnViolation>
 		<maven-checkstyle-plugin.includeTestSourceDirectory>true
 		</maven-checkstyle-plugin.includeTestSourceDirectory>
+		<spring-cloud-aws.version>2.2.1.RELEASE</spring-cloud-aws.version>
 	</properties>
 	<modules>
 		<module>spring-cloud-config-dependencies</module>
@@ -66,6 +67,11 @@
 				<artifactId>spring-cloud-test-support</artifactId>
 				<scope>test</scope>
 				<version>${spring-cloud-commons.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.cloud</groupId>
+				<artifactId>spring-cloud-aws-parameter-store-config</artifactId>
+				<version>${spring-cloud-aws.version}</version>
 			</dependency>
 			<dependency>
 				<groupId>com.amazonaws</groupId>

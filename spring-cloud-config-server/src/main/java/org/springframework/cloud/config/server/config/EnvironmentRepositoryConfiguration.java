@@ -22,7 +22,6 @@ import java.util.Optional;
 import javax.servlet.http.HttpServletRequest;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.simplesystemsmanagement.AWSSimpleSystemsManagement;
 import org.apache.http.client.HttpClient;
 import org.eclipse.jgit.api.TransportConfigCallback;
 import org.tmatesoft.svn.core.SVNException;
@@ -35,6 +34,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingClas
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.condition.SearchStrategy;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cloud.aws.paramstore.AwsParamStorePropertySource;
 import org.springframework.cloud.config.server.composite.CompositeEnvironmentBeanFactoryPostProcessor;
 import org.springframework.cloud.config.server.composite.ConditionalOnMissingSearchPathLocator;
 import org.springframework.cloud.config.server.composite.ConditionalOnSearchPathLocator;
@@ -485,7 +485,7 @@ class CompositeRepositoryConfiguration {
 }
 
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnClass(AWSSimpleSystemsManagement.class)
+@ConditionalOnClass(AwsParamStorePropertySource.class)
 @Profile("awsparameterstore")
 class AwsParameterStoreRepositoryConfiguration {
 
